@@ -82,8 +82,8 @@ def database():
     '''
     connection = pymysql.connect(
         host='localhost',
-        user='jodio',
-        password='123456@Zz',
+        user='',
+        password='',
         db='stock',
         charset='utf8',
         cursorclass=pymysql.cursors.DictCursor
