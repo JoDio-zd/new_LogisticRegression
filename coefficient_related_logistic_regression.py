@@ -3,7 +3,6 @@
 所考虑的问题是系数的变化
 这是一个系数与时间有关的回归问题
 '''
-from math import sqrt, exp
 import pymysql.cursors
 import numpy as np
 
@@ -52,7 +51,7 @@ def sigmoid(z):
     '''
     逻辑回归的激活函数
     '''
-    y_pred = 1 / (1 + exp(-z))
+    y_pred = 1 / (1 + np.exp(-z))
     return y_pred
 
 def zs(t, delta_p, theta = 1):
