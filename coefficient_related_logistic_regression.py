@@ -5,42 +5,47 @@
 '''
 import pymysql.cursors
 import numpy as np
-
+import random
 
 def logistic():
     connection = database()
     stock_id = get_id(connection)
-    alpha = 0.01 # 学习率
+    alpha = 0.05 # 学习率
     theta = 1
+    stock_id = random.sample(stock_id, 20)
     while True:
         z = []
         y_test = []
-        t = []
+        time = []
+        zs_1 = []
         for i in stock_id:
             date_ = []
             money = []
             s_id = i['id']
             info = get_info_by_id(s_id, connection)
-            if info:
+            if len(info) > 1:
                 for n in info:
                     date_.append(date_to_t(n['date_']))
                     money.append(n['money'])
-                for t in range(len(money)):
-                    if t != len(money):
-                        money[t] = money[t] - money[t + 1]
+                for t in range(len(money) - 1):
+                    if t != len(money)-2:
+                        money[t] = float(money[t]) - float(money[t + 1])
                     else:
-                        y_test.append(0 if money[t] - money[t-1] < 0 else 1)
-                        money[t] = 0
-                t.append(date_)
-                z.append(zs(date_, money, theta))
+                        y_test.append(0 if float(money[t + 1]) - float(money[t]) < 0 else 1)
+                        money[t] = float(money[t]) - float(money[t + 1])
+                        money[t + 1] = 0
+                time.append(date_)
+                z_0, zs_0 = zs(date_, money, theta)
+                z.append(z_0)
+                zs_1.append(zs_0)
             else:
                 continue
         z = np.array(z)
-        t = np.array(t)
+        time = np.array(time)
         y_test = np.array(y_test)
         y_pred = sigmoid(z)
-        theta1 = theta - alpha * 1 / (len(z)) * (y_pred - y_test).dot(z * 1 / t)
-        if theta1 - theta < 0.1:
+        theta1 = theta - alpha * 1 / (len(z)) * (y_pred - y_test).dot(zs_1)
+        if abs(theta1 - theta) < 0.01:
             break
         else:
             theta = theta1
@@ -60,9 +65,11 @@ def zs(t, delta_p, theta = 1):
     之后代入sigmoid函数即可
     '''
     z = 0
+    zs = 0
     for i in range(len(t)):
         z += delta_p[i] * f(t[i], theta)
-    return z
+        zs += delta_p[i] * theta * 1 / t[i]* f(t[i], theta)
+    return z, zs
 
 def date_to_t(date_):
     '''
@@ -94,7 +101,7 @@ def get_id(connection):
     得到股票代码
     '''
     cs = connection.cursor()
-    sql = 'select id from stock_id'
+    sql = 'select distinct id from stock'
     cs.execute(sql)
     stock_id = cs.fetchall()
     return stock_id
@@ -115,5 +122,8 @@ def f(t, theta=1):
     所需要系数的形式
     我们就用反比例函数来试验好了
     '''
-    ans = 1 / (t ** theta)
+    ans = 1 / ((12 - t) ** theta)
     return ans
+
+if __name__ == '__main__':
+    logistic()
