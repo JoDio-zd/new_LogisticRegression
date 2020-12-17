@@ -10,13 +10,14 @@ import random
 def logistic():
     connection = database()
     stock_id = get_id(connection)
-    alpha = 0.05 # 学习率
-    theta = 1
+    alpha = 0.01 # 惩罚
+    theta = 2
     stock_id = random.sample(stock_id, 20)
     while True:
         z = []
+        z1 = []
         y_test = []
-        time = []
+        # time = []
         zs_1 = []
         for i in stock_id:
             date_ = []
@@ -34,23 +35,66 @@ def logistic():
                         y_test.append(0 if float(money[t + 1]) - float(money[t]) < 0 else 1)
                         money[t] = float(money[t]) - float(money[t + 1])
                         money[t + 1] = 0
-                time.append(date_)
+                # time.append(date_)
                 z_0, zs_0 = zs(date_, money, theta)
                 z.append(z_0)
                 zs_1.append(zs_0)
             else:
                 continue
         z = np.array(z)
-        time = np.array(time)
+        # time = np.array(time)
         y_test = np.array(y_test)
         y_pred = sigmoid(z)
         theta1 = theta - alpha * 1 / (len(z)) * (y_pred - y_test).dot(zs_1)
-        if abs(theta1 - theta) < 0.01:
+       
+        for i in stock_id:
+            date_ = []
+            money = []
+            s_id = i['id']
+            info = get_info_by_id(s_id, connection)
+            if len(info) > 1:
+                for n in info:
+                    date_.append(date_to_t(n['date_']))
+                    money.append(n['money'])
+                for t in range(len(money)):
+                    if t != len(money)-1:
+                        money[t] = float(money[t]) - float(money[t + 1])
+                    else:
+                        money[t] = 0
+                # time_1.append(date_)
+                z_1, zs_0 = zs(date_, money, theta1)
+                z1.append(z_1)
+            else:
+                continue
+        
+        z1 = np.array(z1)
+        y_pred1 = sigmoid(z1)
+        a = lost_function(y_test, y_pred)
+        b = lost_function(y_test, y_pred1)
+        if abs(a - b) < 0.1:
+            theta = theta1
             break
         else:
             theta = theta1
     connection.close()
     print(theta)
+    n = 0
+    for i in range(len(y_pred)):
+        if y_pred[i] > 0.6:
+            y_pred[i] = 1
+        elif y_pred[i] < 0.4:
+            y_pred[i] = 0
+    for i in range(len(y_pred)):
+        if y_pred[i] == y_test[i]:
+            n += 1
+    print('正确率为：', n / (i + 1))
+
+def lost_function(y_test, y_pred):
+    '''
+    定义损失函数
+    '''
+    j = 1 / len(y_pred) * np.sum(y_test * np.log(y_pred) + (1-y_test) * np.log(1 - y_pred))
+    return j
 
 def sigmoid(z):
     '''
